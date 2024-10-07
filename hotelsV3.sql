@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 10-09-2024 a las 20:54:39
+-- Tiempo de generación: 05-10-2024 a las 18:40:28
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.0.30
 
@@ -20,55 +20,6 @@ SET time_zone = "+00:00";
 --
 -- Base de datos: `hotels`
 --
-
-DELIMITER $$
---
--- Procedimientos
---
-CREATE DEFINER=`root`@`localhost` PROCEDURE `Actualizar_Estado_Reserva` (IN `p_reserva_id` INT, IN `p_nuevo_estado` VARCHAR(50))   BEGIN
-    -- Actualizar el estado de la reserva
-    UPDATE Reservas
-    SET estado_reserva = p_nuevo_estado
-    WHERE reserva_id = p_reserva_id;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `Registrar_Reserva` (IN `p_cliente_id` INT, IN `p_habitacion_id` INT, IN `p_fecha_entrada` DATE, IN `p_fecha_salida` DATE, IN `p_monto_total` DECIMAL(10,2), IN `p_estado_reserva` VARCHAR(50))   BEGIN
-    -- Insertar la nueva reserva
-    INSERT INTO Reservas (cliente_id, habitacion_id, fecha_entrada, fecha_salida, monto_total, estado_reserva)
-    VALUES (p_cliente_id, p_habitacion_id, p_fecha_entrada, p_fecha_salida, p_monto_total, p_estado_reserva);
-    
-    -- Actualizar el estado de la habitación a 'Ocupada'
-    UPDATE Habitaciones
-    SET estado = 'Ocupada'
-    WHERE habitacion_id = p_habitacion_id;
-END$$
-
---
--- Funciones
---
-CREATE DEFINER=`root`@`localhost` FUNCTION `Calcular_Dias_Reserva` (`p_fecha_entrada` DATE, `p_fecha_salida` DATE) RETURNS INT(11)  BEGIN
-    DECLARE num_dias INT;
-    
-    -- Calcular el número de días entre la fecha de entrada y salida
-    SET num_dias = DATEDIFF(p_fecha_salida, p_fecha_entrada);
-    
-    RETURN num_dias;
-END$$
-
-CREATE DEFINER=`root`@`localhost` FUNCTION `Calcular_Monto_Total_Reserva` (`p_precio_noche` DECIMAL(10,2), `p_fecha_entrada` DATE, `p_fecha_salida` DATE) RETURNS DECIMAL(10,2)  BEGIN
-    DECLARE num_dias INT;
-    DECLARE monto_total DECIMAL(10,2);
-    
-    -- Calcular el número de días
-    SET num_dias = DATEDIFF(p_fecha_salida, p_fecha_entrada);
-    
-    -- Calcular el monto total
-    SET monto_total = num_dias * p_precio_noche;
-    
-    RETURN monto_total;
-END$$
-
-DELIMITER ;
 
 -- --------------------------------------------------------
 
@@ -112,16 +63,32 @@ CREATE TABLE `clientes` (
   `direccion` varchar(150) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
 --
--- Volcado de datos para la tabla `clientes`
+-- Estructura de tabla para la tabla `empleados`
 --
 
-INSERT INTO `clientes` (`cliente_id`, `nombre`, `apellido`, `email`, `telefono`, `direccion`) VALUES
-(1, 'Juan', 'Pérez', 'juan.perez@example.com', '999888777', 'Calle Falsa 123'),
-(2, 'Ana', 'Gómez', 'ana.gomez@example.com', '999777666', 'Av. Principal 456'),
-(3, 'Luis', 'Martínez', 'luis.martinez@example.com', '988776655', 'Calle Secundaria 789'),
-(4, 'María', 'López', 'maria.lopez@example.com', '977665544', 'Jr. Terciario 321'),
-(5, 'Pedro', 'Sánchez', 'pedro.sanchez@example.com', '966554433', 'Calle Industrial 101');
+CREATE TABLE `empleados` (
+  `empleado_id` int(11) NOT NULL,
+  `nombre` varchar(50) DEFAULT NULL,
+  `apellido` varchar(50) DEFAULT NULL,
+  `cargo` varchar(50) DEFAULT NULL,
+  `fecha_contratacion` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `empleado_turno`
+--
+
+CREATE TABLE `empleado_turno` (
+  `empleado_turno_id` int(11) NOT NULL,
+  `empleado_id` int(11) DEFAULT NULL,
+  `turno_id` int(11) DEFAULT NULL,
+  `fecha_asignacion` date DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -136,17 +103,6 @@ CREATE TABLE `habitaciones` (
   `precio_noche` decimal(10,2) NOT NULL,
   `estado` varchar(15) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `habitaciones`
---
-
-INSERT INTO `habitaciones` (`habitacion_id`, `numero`, `tipo`, `precio_noche`, `estado`) VALUES
-(1, '101', 'Simple', 50.00, 'Disponible'),
-(2, '102', 'Doble', 80.00, 'Disponible'),
-(3, '201', 'Suite', 120.00, 'Ocupada'),
-(4, '202', 'Simple', 50.00, 'Disponible'),
-(5, '203', 'Doble', 80.00, 'Ocupada');
 
 --
 -- Disparadores `habitaciones`
@@ -188,16 +144,6 @@ CREATE TABLE `pagos` (
   `metodo_pago` varchar(30) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `pagos`
---
-
-INSERT INTO `pagos` (`pago_id`, `reserva_id`, `fecha_pago`, `monto`, `metodo_pago`) VALUES
-(1, 1, '2024-08-31', 100.00, 'Tarjeta de crédito'),
-(2, 2, '2024-09-04', 600.00, 'Transferencia bancaria'),
-(3, 3, '2024-09-07', 320.00, 'Tarjeta de débito'),
-(4, 5, '2024-09-15', 100.00, 'Efectivo');
-
 -- --------------------------------------------------------
 
 --
@@ -224,22 +170,13 @@ CREATE TABLE `reservas` (
   `reserva_id` int(11) NOT NULL,
   `cliente_id` int(11) NOT NULL,
   `habitacion_id` int(11) NOT NULL,
+  `empleado_id` int(11) DEFAULT NULL,
+  `turno_id` int(11) DEFAULT NULL,
   `fecha_entrada` date NOT NULL,
   `fecha_salida` date NOT NULL,
   `monto_total` decimal(10,2) NOT NULL,
   `estado_reserva` varchar(20) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Volcado de datos para la tabla `reservas`
---
-
-INSERT INTO `reservas` (`reserva_id`, `cliente_id`, `habitacion_id`, `fecha_entrada`, `fecha_salida`, `monto_total`, `estado_reserva`) VALUES
-(1, 1, 1, '2024-09-01', '2024-09-03', 100.00, 'Confirmada'),
-(2, 2, 3, '2024-09-05', '2024-09-10', 600.00, 'Confirmada'),
-(3, 3, 2, '2024-09-08', '2024-09-12', 320.00, 'Pendiente'),
-(4, 4, 5, '2024-09-11', '2024-09-15', 400.00, 'Cancelada'),
-(5, 5, 4, '2024-09-16', '2024-09-18', 100.00, 'Confirmada');
 
 --
 -- Disparadores `reservas`
@@ -288,17 +225,6 @@ CREATE TABLE `reservas_servicios` (
   `cantidad` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `reservas_servicios`
---
-
-INSERT INTO `reservas_servicios` (`reserva_id`, `servicio_id`, `cantidad`) VALUES
-(1, 1, 2),
-(1, 3, 1),
-(2, 2, 1),
-(3, 4, 1),
-(5, 5, 1);
-
 -- --------------------------------------------------------
 
 --
@@ -326,17 +252,6 @@ CREATE TABLE `servicios_adicionales` (
   `precio` decimal(10,2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `servicios_adicionales`
---
-
-INSERT INTO `servicios_adicionales` (`servicio_id`, `nombre`, `descripcion`, `precio`) VALUES
-(1, 'Desayuno', 'Servicio de desayuno continental', 15.00),
-(2, 'Spa', 'Acceso a la zona de spa', 50.00),
-(3, 'Transporte', 'Servicio de transporte al aeropuerto', 20.00),
-(4, 'Cama adicional', 'Cama adicional en la habitación', 10.00),
-(5, 'Cena', 'Cena gourmet para 2 personas', 30.00);
-
 -- --------------------------------------------------------
 
 --
@@ -350,6 +265,18 @@ CREATE TABLE `servicios_reserva` (
 ,`servicio` varchar(50)
 ,`cantidad` int(11)
 );
+
+-- --------------------------------------------------------
+
+--
+-- Estructura de tabla para la tabla `turnos`
+--
+
+CREATE TABLE `turnos` (
+  `turno_id` int(11) NOT NULL,
+  `hora_inicio` time DEFAULT NULL,
+  `hora_fin` time DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -422,6 +349,20 @@ ALTER TABLE `clientes`
   ADD UNIQUE KEY `email` (`email`);
 
 --
+-- Indices de la tabla `empleados`
+--
+ALTER TABLE `empleados`
+  ADD PRIMARY KEY (`empleado_id`);
+
+--
+-- Indices de la tabla `empleado_turno`
+--
+ALTER TABLE `empleado_turno`
+  ADD PRIMARY KEY (`empleado_turno_id`),
+  ADD KEY `empleado_id` (`empleado_id`),
+  ADD KEY `turno_id` (`turno_id`);
+
+--
 -- Indices de la tabla `habitaciones`
 --
 ALTER TABLE `habitaciones`
@@ -457,6 +398,12 @@ ALTER TABLE `servicios_adicionales`
   ADD PRIMARY KEY (`servicio_id`);
 
 --
+-- Indices de la tabla `turnos`
+--
+ALTER TABLE `turnos`
+  ADD PRIMARY KEY (`turno_id`);
+
+--
 -- AUTO_INCREMENT de las tablas volcadas
 --
 
@@ -476,31 +423,49 @@ ALTER TABLE `auditoria_reservas`
 -- AUTO_INCREMENT de la tabla `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `cliente_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `cliente_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `empleados`
+--
+ALTER TABLE `empleados`
+  MODIFY `empleado_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `empleado_turno`
+--
+ALTER TABLE `empleado_turno`
+  MODIFY `empleado_turno_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `habitaciones`
 --
 ALTER TABLE `habitaciones`
-  MODIFY `habitacion_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `habitacion_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `pagos`
 --
 ALTER TABLE `pagos`
-  MODIFY `pago_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `pago_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `reservas`
 --
 ALTER TABLE `reservas`
-  MODIFY `reserva_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `reserva_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT de la tabla `servicios_adicionales`
 --
 ALTER TABLE `servicios_adicionales`
-  MODIFY `servicio_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `servicio_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT de la tabla `turnos`
+--
+ALTER TABLE `turnos`
+  MODIFY `turno_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- Restricciones para tablas volcadas
@@ -517,6 +482,13 @@ ALTER TABLE `auditoria_habitaciones`
 --
 ALTER TABLE `auditoria_reservas`
   ADD CONSTRAINT `auditoria_reservas_ibfk_1` FOREIGN KEY (`reserva_id`) REFERENCES `reservas` (`reserva_id`);
+
+--
+-- Filtros para la tabla `empleado_turno`
+--
+ALTER TABLE `empleado_turno`
+  ADD CONSTRAINT `empleado_turno_ibfk_1` FOREIGN KEY (`empleado_id`) REFERENCES `empleados` (`empleado_id`),
+  ADD CONSTRAINT `empleado_turno_ibfk_2` FOREIGN KEY (`turno_id`) REFERENCES `turnos` (`turno_id`);
 
 --
 -- Filtros para la tabla `pagos`
